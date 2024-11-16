@@ -26,6 +26,7 @@ public class Generator : MonoBehaviour
     //public Tile tile;
 
     [SerializeField] float thresoldMain = 0.35f;
+    [SerializeField] int generationOffset = 888;
     [SerializeField] bool useOptimization;
 
     [Header("ќй Ѕл€€€...")]
@@ -43,33 +44,68 @@ public class Generator : MonoBehaviour
     {
         //StartCoroutine(StartGeneration());
 
-        var pos = GetPosStartChunck(out var startY);
+        //var pos = GetPosStartChunck(out var startY);
 
-        dict.Add(pos, CreateChunck(pos.x, pos.y));
+        //dict.Add(pos, CreateChunck(pos.x, pos.y));
 
-        playerStartPos = new Vector2Int(pos.x, startY);
-        player = Instantiate(playerPrefab, new Vector3(pos.x + 0.5f, startY + 10), Quaternion.identity);
+        //playerStartPos = new Vector2Int(pos.x, startY);
+        //player = Instantiate(playerPrefab, new Vector3(pos.x + 0.5f, startY + 10), Quaternion.identity);
+        playerStartPos = new Vector2Int(0, chunckSize + 2);
+        player = Instantiate
+        (
+            playerPrefab, 
+            new Vector3(playerStartPos.x, playerStartPos.y),
+            Quaternion.identity
+        );
 
-        Debug.Log(Mathf.Pow(chunckViewDistance * 2 , 2));
+        PlanarGeneration();
+
+        //Debug.Log(Mathf.Pow(chunckViewDistance * 2 , 2));
 
 
-        while (dict.Count < Mathf.Pow(chunckViewDistance * 2, 2))
-        {
-            yield return new WaitForSeconds(0.01f);
-        }
+        //while (dict.Count < Mathf.Pow(chunckViewDistance * 2, 2))
+        //{
+        //    yield return new WaitForSeconds(0.01f);
+        //}
 
         yield return new WaitForSeconds(3f);
 
-        yield return new WaitForSeconds(1f);
+        //yield return new WaitForSeconds(1f);
 
-        //AudioManager.Instance.NoobSpawn(player.Hip);
+        ////AudioManager.Instance.NoobSpawn(player.Hip);
 
-        var go = new GameObject("OPtosiska");
-        go.AddComponent<SpriteRenderer>().sprite = spirt;
-        go.transform.position = (Vector2)playerStartPos;
+        //var go = new GameObject("OPtosiska");
+        //go.AddComponent<SpriteRenderer>().sprite = spirt;
+        //go.transform.position = (Vector2)playerStartPos;
 
 
     }
+
+    private void PlanarGeneration()
+    {
+        StartCoroutine(Async());
+
+        IEnumerator Async()
+        {
+            var chunk = CreatePlanarChunck(0, 0);
+            dict.Add(new Vector2Int(0, 0), chunk);
+
+            yield return new WaitForEndOfFrame();
+
+            var landSize = chunckViewDistance * chunckSize;
+            for (int x = -landSize; x <= landSize; x += chunckSize)
+            {
+                if (x == 0)
+                    continue;
+
+                chunk = CreatePlanarChunck(x, 0);
+                dict.Add(new Vector2Int(x, 0), chunk);
+
+                yield return new WaitForEndOfFrame();
+            }
+        }
+    }
+
 
     //488 - 188
     private IEnumerator StartGeneration()
@@ -150,16 +186,52 @@ public class Generator : MonoBehaviour
         return chunck;
     }
 
+    public Chunck CreatePlanarChunck(int posX, int posY)
+    {
+        var chunck = Instantiate(chunckPrefab, new Vector3(posX, posY), Quaternion.identity);
+        chunck.name += $" {chunck.GetHashCode()}";
+
+        for (int x = 0; x < chunckSize; x++)
+        {
+            for (int y = 0; y < chunckSize; y++)
+            {
+                int idBlock;
+                if (y == chunckSize - 1)
+                {
+                    idBlock = GROUND;
+                }
+                else
+                {
+                    idBlock = GetBlockID(x + posX, y + posY);
+                    if (idBlock == GROUND && y + 1 == chunckSize - 1)
+                    {
+                        idBlock = DIRT;
+                    }
+                }
+
+                if (idBlock == 0)
+                    continue;
+
+                var t = ScriptableObject.CreateInstance(typeof(Tile)) as Tile;
+                t.sprite = blockData[idBlock].sprite;
+                chunck.Tilemap.SetTile(new Vector3Int(x, y, 0), t);
+                chunck.TilemapBack.SetTile(new Vector3Int(x, y, 0), t);
+            }
+        }
+
+        return chunck;
+    }
+
     public int GetBlockID(int posX, int posY)
     {
         int idBlock = EMPTY;
 
-        var globalNoise = Mathf.PerlinNoise(posX / globalZoom, posY / globalZoom);
+        var globalNoise = Mathf.PerlinNoise((posX + generationOffset) / globalZoom, posY / globalZoom);
         globalNoise /= posY / globalCutout;
 
         if (globalNoise > 0.5f)
         {
-            var noise = Mathf.PerlinNoise(posX / zoom, posY / zoom);
+            var noise = Mathf.PerlinNoise((posX + generationOffset) / zoom, posY / zoom);
 
             if (noise > thresoldMain)
             {
@@ -171,7 +243,7 @@ public class Generator : MonoBehaviour
                 }
                 if (idBlock == DIRT)// ѕроверка на верхний блок земли
                 {
-                    if(GetBlockID(posX, posY + 1) == 0)
+                    if (GetBlockID(posX, posY + 1) == 0)
                     {
                         idBlock = GROUND;
                     }
@@ -328,9 +400,9 @@ public class Generator : MonoBehaviour
 
     private void Update()
     {
-        DynamicCreateChunck();
+        //DynamicCreateChunck();
 
-        PerfomanceMagic();
+        //PerfomanceMagic();
     }
 
     void PerfomanceMagic()

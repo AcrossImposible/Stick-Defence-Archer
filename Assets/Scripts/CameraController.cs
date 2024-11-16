@@ -6,15 +6,14 @@ using System;
 
 public class CameraController : MonoBehaviour
 {
-    [SerializeField]
-    private CinemachineVirtualCameraBase cam;
+    [SerializeField] CinemachineVirtualCameraBase cam;
     //[SerializeField] CinemachineVirtualCamera enemyCam;
-
+    
     Transform mainTarget;
 
     private void Awake()
     {
-        //Architecture.Player.onOwnerSpawn.AddListener(Plyer_Spawned);
+        EventsHolder.playerSpawnedMine.AddListener(Plyer_Spawned);
         //EventsHolder.onCritPunch.AddListener(Crit_Punched);
         //EventsHolder.onBtnCamClicked.AddListener(Cam_Clicked);
         EventsHolder.onStickmanDestroyed.AddListener(CountCharacters_Changed);
@@ -63,6 +62,6 @@ public class CameraController : MonoBehaviour
     void Plyer_Spawned(Player target)
     {
         mainTarget = target.transform;
-        cam.Follow = target.transform;
+        cam.Follow = target.Hip;
     }
 }
